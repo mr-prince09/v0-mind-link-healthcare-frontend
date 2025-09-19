@@ -159,3 +159,33 @@ export const mockCaregiverData = {
     { name: "Jane Wilson (Daughter)", phone: "+1-555-0456", type: "Family" },
   ],
 }
+
+export const mockBookingData = [
+  {
+    id: "1",
+    patientName: "John Doe",
+    appointmentDate: "2024-01-20",
+    appointmentTime: "10:00",
+    reason: "Follow-up consultation for anxiety management",
+    status: "confirmed" as const,
+    createdAt: "2024-01-15T09:00:00Z",
+  },
+  {
+    id: "2",
+    patientName: "Sarah Johnson",
+    appointmentDate: "2024-01-22",
+    appointmentTime: "14:30",
+    reason: "Medication review and therapy session",
+    status: "pending" as const,
+    createdAt: "2024-01-14T16:45:00Z",
+  },
+  {
+    id: "3",
+    patientName: "Mike Wilson",
+    appointmentDate: "2024-01-25",
+    appointmentTime: "11:15",
+    reason: "Sleep study results discussion",
+    status: "confirmed" as const,
+    createdAt: "2024-01-13T12:20:00Z",
+  },
+]

@@ -1,350 +1,219 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { ProtectedRoute } from "@/components/protected-route"
 import { DashboardLayout } from "@/components/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts"
-import {
-  Users,
-  BarChart3,
-  Activity,
-  Settings,
-  Server,
-  Database,
-  HardDrive,
-  Cpu,
-  MemoryStick,
-  AlertTriangle,
-  CheckCircle,
-  Clock,
-  RefreshCw,
-} from "lucide-react"
-import { useState } from "react"
-
-const sidebarItems = [
-  { label: "Users", href: "/admin", icon: <Users className="mr-2 h-4 w-4" /> },
-  { label: "Analytics", href: "/admin/analytics", icon: <BarChart3 className="mr-2 h-4 w-4" /> },
-  { label: "System Health", href: "/admin/system", icon: <Activity className="mr-2 h-4 w-4" />, active: true },
-  { label: "Settings", href: "/admin/settings", icon: <Settings className="mr-2 h-4 w-4" /> },
-]
+import { Users, BarChart3, Activity, Settings, CheckCircle, AlertTriangle, XCircle, RefreshCw } from "lucide-react"
+import { db } from "@/firebase"
+import { collection, getDocs } from "firebase/firestore"
 
 export default function AdminSystemHealth() {
-  const [lastUpdated, setLastUpdated] = useState(new Date())
-  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [systemStatus, setSystemStatus] = useState({
+    database: "healthy",
+    api: "healthy",
+    authentication: "healthy",
+    storage: "healthy",
+  })
 
-  const systemMetrics = {
-    uptime: "99.97%",
-    responseTime: "145ms",
-    activeUsers: 1247,
-    totalRequests: 45678,
-    errorRate: "0.03%",
-    dataProcessed: "2.4TB",
-  }
+  const [metrics, setMetrics] = useState({
+    uptime: 99.9,
+    responseTime: 120,
+    activeUsers: 0,
+    totalRequests: 0,
+  })
 
-  const serverStatus = [
-    { name: "Web Server 1", status: "healthy", cpu: 45, memory: 62, disk: 78, uptime: "15 days" },
-    { name: "Web Server 2", status: "healthy", cpu: 38, memory: 55, disk: 82, uptime: "15 days" },
-    { name: "Database Primary", status: "healthy", cpu: 72, memory: 84, disk: 65, uptime: "30 days" },
-    { name: "Database Replica", status: "warning", cpu: 89, memory: 91, disk: 88, uptime: "12 days" },
-    { name: "AI Processing", status: "healthy", cpu: 56, memory: 67, disk: 45, uptime: "8 days" },
-    { name: "File Storage", status: "healthy", cpu: 23, memory: 34, disk: 92, uptime: "45 days" },
-  ]
+  useEffect(() => {
+    // Fetch system health data from Firebase or mock data
+    const fetchSystemHealth = async () => {
+      // For demo, using mock data; replace with real monitoring data
+      setSystemStatus({
+        database: "healthy",
+        api: "healthy",
+        authentication: "healthy",
+        storage: "healthy",
+      })
 
-  const performanceData = [
-    { time: "00:00", responseTime: 120, requests: 450, errors: 2 },
-    { time: "04:00", responseTime: 110, requests: 320, errors: 1 },
-    { time: "08:00", responseTime: 180, requests: 890, errors: 5 },
-    { time: "12:00", responseTime: 165, requests: 1200, errors: 8 },
-    { time: "16:00", responseTime: 145, requests: 1100, errors: 3 },
-    { time: "20:00", responseTime: 135, requests: 780, errors: 2 },
-  ]
+      setMetrics({
+        uptime: 99.9,
+        responseTime: 120,
+        activeUsers: 42,
+        totalRequests: 15420,
+      })
+    }
 
-  const systemAlerts = [
-    {
-      id: "1",
-      severity: "warning",
-      title: "High Memory Usage",
-      description: "Database Replica server memory usage at 91%",
-      timestamp: "2024-01-15T14:30:00Z",
-      resolved: false,
-    },
-    {
-      id: "2",
-      severity: "info",
-      title: "Scheduled Maintenance",
-      description: "System maintenance scheduled for tonight at 2:00 AM",
-      timestamp: "2024-01-15T12:00:00Z",
-      resolved: false,
-    },
-    {
-      id: "3",
-      severity: "resolved",
-      title: "API Rate Limit Exceeded",
-      description: "Rate limit exceeded for external API calls - now resolved",
-      timestamp: "2024-01-15T10:15:00Z",
-      resolved: true,
-    },
-  ]
+    fetchSystemHealth()
+  }, [])
 
-  const getStatusColor = (status: string) => {
+  const getStatusIcon = (status: string) => {
     switch (status) {
       case "healthy":
-        return "text-green-600"
+        return <CheckCircle className="h-5 w-5 text-green-500" />
       case "warning":
-        return "text-yellow-600"
-      case "critical":
-        return "text-red-600"
+        return <AlertTriangle className="h-5 w-5 text-yellow-500" />
+      case "error":
+        return <XCircle className="h-5 w-5 text-red-500" />
       default:
-        return "text-gray-600"
+        return <CheckCircle className="h-5 w-5 text-green-500" />
     }
   }
 
-  const getStatusBadge = (status: string) => {
+  const getStatusBadgeVariant = (status: string) => {
     switch (status) {
       case "healthy":
         return "default"
       case "warning":
         return "secondary"
-      case "critical":
+      case "error":
         return "destructive"
       default:
-        return "outline"
+        return "default"
     }
-  }
-
-  const getSeverityIcon = (severity: string) => {
-    switch (severity) {
-      case "critical":
-        return <AlertTriangle className="h-4 w-4 text-red-500" />
-      case "warning":
-        return <Clock className="h-4 w-4 text-yellow-500" />
-      case "info":
-        return <Activity className="h-4 w-4 text-blue-500" />
-      case "resolved":
-        return <CheckCircle className="h-4 w-4 text-green-500" />
-      default:
-        return <Activity className="h-4 w-4 text-gray-500" />
-    }
-  }
-
-  const handleRefresh = async () => {
-    setIsRefreshing(true)
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setLastUpdated(new Date())
-    setIsRefreshing(false)
   }
 
   return (
     <ProtectedRoute allowedRoles={["admin"]}>
-      <DashboardLayout sidebarItems={sidebarItems}>
+      <DashboardLayout sidebarItems={[
+        { label: "Users", href: "/admin", icon: <Users className="mr-2 h-4 w-4" /> },
+        { label: "Analytics", href: "/admin/analytics", icon: <BarChart3 className="mr-2 h-4 w-4" /> },
+        { label: "System Health", href: "/admin/system", icon: <Activity className="mr-2 h-4 w-4" />, active: true },
+        { label: "Settings", href: "/admin/settings", icon: <Settings className="mr-2 h-4 w-4" /> },
+      ]}>
         <div className="space-y-6">
-          {/* Header */}
-          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">System Health Monitor</h1>
-              <p className="text-muted-foreground">Real-time monitoring of system performance and health</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <div className="text-sm text-muted-foreground">Last updated: {lastUpdated.toLocaleTimeString()}</div>
-              <Button onClick={handleRefresh} disabled={isRefreshing}>
-                <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                Refresh
-              </Button>
-            </div>
-          </div>
-
-          {/* System Overview */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">System Uptime</CardTitle>
-                <Server className="h-4 w-4 text-green-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{systemMetrics.uptime}</div>
-                <p className="text-xs text-muted-foreground">Last 30 days</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Response Time</CardTitle>
-                <Activity className="h-4 w-4 text-blue-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{systemMetrics.responseTime}</div>
-                <p className="text-xs text-muted-foreground">Average response time</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-                <Users className="h-4 w-4 text-purple-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{systemMetrics.activeUsers.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">Currently online</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Total Requests</CardTitle>
-                <BarChart3 className="h-4 w-4 text-orange-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{systemMetrics.totalRequests.toLocaleString()}</div>
-                <p className="text-xs text-muted-foreground">Last 24 hours</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Error Rate</CardTitle>
-                <AlertTriangle className="h-4 w-4 text-red-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold text-green-600">{systemMetrics.errorRate}</div>
-                <p className="text-xs text-muted-foreground">Very low error rate</p>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Data Processed</CardTitle>
-                <Database className="h-4 w-4 text-teal-500" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">{systemMetrics.dataProcessed}</div>
-                <p className="text-xs text-muted-foreground">Last 24 hours</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Performance Charts */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Response Time Trend</CardTitle>
-                <CardDescription>Average response time over the last 24 hours</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <LineChart data={performanceData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" />
-                    <YAxis />
-                    <Tooltip />
-                    <Line type="monotone" dataKey="responseTime" stroke="#3b82f6" strokeWidth={2} />
-                  </LineChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Request Volume</CardTitle>
-                <CardDescription>Number of requests processed over time</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <AreaChart data={performanceData}>
-                    <CartesianGrid strokeDasharray="3 3" />
-                    <XAxis dataKey="time" />
-                    <YAxis />
-                    <Tooltip />
-                    <Area type="monotone" dataKey="requests" stroke="#10b981" fill="#10b981" fillOpacity={0.3} />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Server Status */}
           <Card>
             <CardHeader>
-              <CardTitle>Server Status</CardTitle>
-              <CardDescription>Real-time status of all system components</CardDescription>
+              <CardTitle>System Health Overview</CardTitle>
+              <CardDescription>Monitor the health and performance of all system components</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {serverStatus.map((server, index) => (
-                  <div key={index} className="border rounded-lg p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <h4 className="font-medium">{server.name}</h4>
-                      <Badge variant={getStatusBadge(server.status) as any}>{server.status}</Badge>
-                    </div>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <Cpu className="h-4 w-4" />
-                          <span>CPU</span>
-                        </div>
-                        <span>{server.cpu}%</span>
-                      </div>
-                      <Progress value={server.cpu} className="h-2" />
-
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <MemoryStick className="h-4 w-4" />
-                          <span>Memory</span>
-                        </div>
-                        <span>{server.memory}%</span>
-                      </div>
-                      <Progress value={server.memory} className="h-2" />
-
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2">
-                          <HardDrive className="h-4 w-4" />
-                          <span>Disk</span>
-                        </div>
-                        <span>{server.disk}%</span>
-                      </div>
-                      <Progress value={server.disk} className="h-2" />
-
-                      <div className="flex items-center justify-between text-sm text-muted-foreground">
-                        <span>Uptime</span>
-                        <span>{server.uptime}</span>
-                      </div>
-                    </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="flex items-center gap-3 p-3 border rounded-lg">
+                  {getStatusIcon(systemStatus.database)}
+                  <div>
+                    <p className="font-medium">Database</p>
+                    <Badge variant={getStatusBadgeVariant(systemStatus.database)}>{systemStatus.database}</Badge>
                   </div>
-                ))}
+                </div>
+                <div className="flex items-center gap-3 p-3 border rounded-lg">
+                  {getStatusIcon(systemStatus.api)}
+                  <div>
+                    <p className="font-medium">API</p>
+                    <Badge variant={getStatusBadgeVariant(systemStatus.api)}>{systemStatus.api}</Badge>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 border rounded-lg">
+                  {getStatusIcon(systemStatus.authentication)}
+                  <div>
+                    <p className="font-medium">Authentication</p>
+                    <Badge variant={getStatusBadgeVariant(systemStatus.authentication)}>{systemStatus.authentication}</Badge>
+                  </div>
+                </div>
+                <div className="flex items-center gap-3 p-3 border rounded-lg">
+                  {getStatusIcon(systemStatus.storage)}
+                  <div>
+                    <p className="font-medium">Storage</p>
+                    <Badge variant={getStatusBadgeVariant(systemStatus.storage)}>{systemStatus.storage}</Badge>
+                  </div>
+                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* System Alerts */}
           <Card>
             <CardHeader>
-              <CardTitle>System Alerts</CardTitle>
-              <CardDescription>Recent system notifications and alerts</CardDescription>
+              <CardTitle>Performance Metrics</CardTitle>
+              <CardDescription>Key performance indicators for system monitoring</CardDescription>
             </CardHeader>
             <CardContent>
-              <div className="space-y-4">
-                {systemAlerts.map((alert) => (
-                  <div key={alert.id} className="flex items-start gap-3 p-3 border rounded-lg">
-                    {getSeverityIcon(alert.severity)}
-                    <div className="flex-1">
-                      <div className="flex items-center justify-between mb-1">
-                        <h4 className="font-medium">{alert.title}</h4>
-                        <Badge
-                          variant={
-                            alert.resolved ? "default" : alert.severity === "warning" ? "secondary" : "destructive"
-                          }
-                        >
-                          {alert.resolved ? "Resolved" : alert.severity}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground mb-2">{alert.description}</p>
-                      <p className="text-xs text-muted-foreground">{new Date(alert.timestamp).toLocaleString()}</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="text-center p-3 border rounded-lg">
+                  <div className="text-2xl font-bold text-green-600">{metrics.uptime}%</div>
+                  <p className="text-sm text-muted-foreground">Uptime</p>
+                  <Progress value={metrics.uptime} className="mt-2" />
+                </div>
+                <div className="text-center p-3 border rounded-lg">
+                  <div className="text-2xl font-bold">{metrics.responseTime}ms</div>
+                  <p className="text-sm text-muted-foreground">Avg Response Time</p>
+                </div>
+                <div className="text-center p-3 border rounded-lg">
+                  <div className="text-2xl font-bold">{metrics.activeUsers}</div>
+                  <p className="text-sm text-muted-foreground">Active Users</p>
+                </div>
+                <div className="text-center p-3 border rounded-lg">
+                  <div className="text-2xl font-bold">{metrics.totalRequests.toLocaleString()}</div>
+                  <p className="text-sm text-muted-foreground">Total Requests</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent System Events</CardTitle>
+              <CardDescription>Log of recent system activities and alerts</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <div>
+                      <p className="font-medium">Database backup completed</p>
+                      <p className="text-sm text-muted-foreground">2 hours ago</p>
                     </div>
-                    {!alert.resolved && (
-                      <Button variant="outline" size="sm">
-                        Resolve
-                      </Button>
-                    )}
                   </div>
-                ))}
+                  <Badge variant="default">Success</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                    <div>
+                      <p className="font-medium">High CPU usage detected</p>
+                      <p className="text-sm text-muted-foreground">4 hours ago</p>
+                    </div>
+                  </div>
+                  <Badge variant="secondary">Warning</Badge>
+                </div>
+                <div className="flex items-center justify-between p-3 border rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <CheckCircle className="h-4 w-4 text-green-500" />
+                    <div>
+                      <p className="font-medium">Security scan completed</p>
+                      <p className="text-sm text-muted-foreground">6 hours ago</p>
+                    </div>
+                  </div>
+                  <Badge variant="default">Success</Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Maintenance Actions</CardTitle>
+              <CardDescription>Perform system maintenance tasks</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Button variant="outline" className="justify-start">
+                  <RefreshCw className="mr-2 h-4 w-4" />
+                  Refresh System Cache
+                </Button>
+                <Button variant="outline" className="justify-start">
+                  <CheckCircle className="mr-2 h-4 w-4" />
+                  Run Health Check
+                </Button>
+                <Button variant="outline" className="justify-start">
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  Generate System Report
+                </Button>
+                <Button variant="outline" className="justify-start">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Optimize Database
+                </Button>
               </div>
             </CardContent>
           </Card>

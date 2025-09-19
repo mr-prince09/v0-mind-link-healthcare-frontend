@@ -1,7 +1,6 @@
 "use client"
 
 import type React from "react"
-
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
@@ -13,6 +12,11 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Loader2, Heart } from "lucide-react"
 import Link from "next/link"
+
+// Import Firebase Auth and Firestore
+import { auth, db } from "@/firebase"
+import { createUserWithEmailAndPassword } from "firebase/auth"
+import { doc, setDoc } from "firebase/firestore"
 
 export default function SignupPage() {
   const [formData, setFormData] = useState({
@@ -41,14 +45,33 @@ export default function SignupPage() {
       return
     }
 
+    if (!formData.role) {
+      setError("Please select a role")
+      return
+    }
+
     setIsLoading(true)
 
     try {
-      // In a real app, this would call your signup API
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Create user with Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        formData.email,
+        formData.password
+      )
+      const user = userCredential.user
+
+      // Store additional user info (name, role) in Firestore
+      await setDoc(doc(db, "users", user.uid), {
+        name: formData.name,
+        email: formData.email,
+        role: formData.role,
+        createdAt: new Date(),
+      })
+
       router.push("/login")
-    } catch (err) {
-      setError("Signup failed. Please try again.")
+    } catch (err: any) {
+      setError(err.message || "Signup failed. Please try again.")
     } finally {
       setIsLoading(false)
     }
@@ -105,6 +128,7 @@ export default function SignupPage() {
                   <SelectItem value="patient">Patient</SelectItem>
                   <SelectItem value="doctor">Doctor</SelectItem>
                   <SelectItem value="caregiver">Caregiver</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>
             </div>
