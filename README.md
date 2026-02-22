@@ -79,17 +79,3 @@ Advanced analytics
 Syed Abdul Ajeez
 Frontend Developer | MERN Stack
 India 🇮🇳
-
-If you want, I can now:
-
-Make it look like a top GitHub open-source project
-
-Add professional badges (stars, tech, license)
-
-Add installation instructions
-
-Make it minimal and clean
-
-Make it startup-level impressive
-
-Tell me what style you want 🔥
